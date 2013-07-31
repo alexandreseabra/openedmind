@@ -1,6 +1,6 @@
 var stage = new Kinetic.Stage({
 	container : 'container',
-	width : 640,
+	width : 1024,
 	height : 400
 });
 
@@ -28,12 +28,12 @@ $.ajax({
 	success : function(data) {
 		var map = data.firstChild;
 		var rootNode = map.firstElementChild;
-		var node = new Node(rootNode);
+
 //		alert(node.getText());
 //		alert(node.getId());
 
 		var map = new Map(layer, rootNode);
-		map.drawMap();
+		map.draw();
 		/*$(data).find('node').each(function(){
 		 var id = $(this).attr('ID');
 		 alert(id);
@@ -42,81 +42,146 @@ $.ajax({
 	}
 });
 
-function NodePosition(x,y) {
+function Position(x,y) {
 	this.x = x;
-	this.y = y;
-	
-	
+	this.y = y;	
+}
+function Dimension(w, h){
+	this.width = w;
+	this.height = h;
 }
 
 function Map(layer, rootNode) {
 	this.rootNode = new Node(rootNode);
-	alert(layer.getWidth());
-	var position = new NodePosition(stage.getWidth()/2 -100, stage.getHeight()/2 -40);
+	var position = new Position(stage.getWidth()/2 -100, stage.getHeight()/2 -40);
 	this.rootNode.setNodePosition(position);
 	this.layer = layer;
 
-	this.drawMap = function() {
-		this.rootNode.draw(layer);
+	this.draw = function() {
+		this.drawMap(this.rootNode);
+		
+	};
+	
+	this.drawMap = function( node ){
+		this.printNode(node);
+		node.draw(this.layer);
+		var nodeHeight =  this.countHeightOfANode ( node );
+		var nodePositionReference = new Position(node.position.x, node.position.y);
+		nodePositionReference.x = nodePositionReference.x + node.getWidth() + 40;
+		nodePositionReference.y = nodePositionReference.y - nodeHeight/2;
+		
+		var xmlChildren = node.xmlChildrenArray();
+		for( var i=0; i<xmlChildren.length; i++ ){
+			var childNode = new Node( xmlChildren[i] );
+			var childNodeHeight = this.countHeightOfANode( childNode );
+			
+			var positionOfChildNode = new Position( nodePositionReference.x, 
+							nodePositionReference.y + childNodeHeight/2 );
+			childNode.setNodePosition( positionOfChildNode );
+			nodePositionReference.y = nodePositionReference.y + childNodeHeight;
+			
+			//this.printNode(childNode);
+			this.drawMap(childNode);
+			//childNode.draw(layer);
+		}
+	}
+	
+	this.printNode = function (node){
+		console.log(node.getText()+"("+node.position.x+","+node.position.y+")"+">"+this.countHeightOfANode(node));
+	}
+	
+	this.countHeightOfANode = function(node) {
+		var spacing = 5;
+		var ct = 0;
+		if( node.getXmlNode().childElementCount == 0 ){
+			return node.getHeight();
+		}else{
+			var xmlChildren = node.xmlChildrenArray();
+			for( var i=0; i < xmlChildren.length; i++ ){
+				ct = ct + this.countHeightOfANode(new Node( xmlChildren[i] )) +spacing;
+			}
+		}
+		return ct;	
 	};
 }
 
 function Node(xmlNode) {
-	this.node = xmlNode;
-	this.position = null;
-
+	this.xmlNode = xmlNode;
+	this.position = new Position(0,0);
+	
+	this.getXmlNode = function () {
+		return this.xmlNode;
+	};
+	
 	this.getId = function() {
-		return $(this.node).attr("ID");
+		return $(this.xmlNode).attr("ID");
 	};
 	this.getText = function() {
-		return $(this.node).attr("TEXT");
+		var text = $(this.xmlNode).attr("TEXT");
+		if( typeof text === 'undefined' )
+			return "UNDEFINED TEXT";
+		return text;
 	};
 	this.getCreatedTime = function() {
-		return $(this.node).attr("CREATED");
-	}
+		return $(this.xmlNode).attr("CREATED");
+	};
 	this.getModifiedTime = function() {
-		return $(this.node).attr("MODIFIED");
-	}
-	this.children = function() {
-		var sonNode = this.node.children;
+		return $(this.xmlNode).attr("MODIFIED");
+	};
+	this.xmlChildrenArray = function() {
+		var sonxmlNode = this.xmlNode.children;
 		//return new Node(sonNode);
-		return sonNode;
-	}
-	this.setNodePosition = function( nodePosition ){
-		this.position = nodePosition;
-	}
+		return sonxmlNode;
+	};
+	
+	this.setNodePosition = function( newPosition ){
+		this.position = newPosition;
+		this.drawableElements[0].setX(this.position.x);
+		this.drawableElements[0].setY(this.position.y);
+		this.drawableElements[1].setX(this.drawableElements[0].getX());
+		this.drawableElements[1].setY(this.drawableElements[0].getY())	;
+	};
+	
+	this.getWidth = function(){
+		return this.drawableElements[1].getWidth();
+	};
+	
+	this.getHeight = function(){
+		return this.drawableElements[1].getHeight();
+	};
 	
 	this.draw = function(layer) {
-		var drawableNode = this;
-		var complexText = new Kinetic.Text({
+		layer.add(this.drawableElements[1]);
+		layer.add(this.drawableElements[0]);
+	};
+	
+//Constructor
+	this.drawableElements =new Array();
+	this.drawableElements[0]= new Kinetic.Text({
 			x : this.position.x,
 			y : this.position.y,
-			text : drawableNode.getText(),
+			text : this.getText(),
 			fontSize : 18,
 			fontFamily : 'Calibri',
 			fill : '#555',
-			width : 380,
-			padding : 20,
+			//width : this.dimension.width,
+			padding : 10,
 			align : 'center'
 		});
 
-		var rect = new Kinetic.Rect({
+	this.drawableElements[1] = new Kinetic.Rect({
 			x : this.position.x,
 			y : this.position.y,
 			stroke : '#555',
 			strokeWidth : 5,
 			fill : '#ddd',
-			width : complexText.getWidth()+10,
-			height : complexText.getHeight(),
+			width : this.drawableElements[0].getWidth()+5,
+			height : this.drawableElements[0].getHeight(),
 			shadowColor : 'black',
-			shadowBlur : 10,
-			shadowOffset : [10, 10],
+			shadowBlur : 5,
+			shadowOffset : [5, 5],
 			shadowOpacity : 0.2,
-			cornerRadius : 10
+			cornerRadius : 5
 		});
-
-		layer.add(rect);
-		layer.add(complexText);
-	}
-	
 };
+
