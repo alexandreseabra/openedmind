@@ -1,10 +1,12 @@
 var stage = new Kinetic.Stage({
 	container : 'container',
 	width : 1024,
-	height : 400
+	height : 400,
+	draggable: true
 });
 
 var layer = new Kinetic.Layer();
+
 /*
 var rect = new Kinetic.Rect({
 x : 239,
@@ -29,8 +31,8 @@ $.ajax({
 		var map = data.firstChild;
 		var rootNode = map.firstElementChild;
 
-//		alert(node.getText());
-//		alert(node.getId());
+		//		alert(node.getText());
+		//		alert(node.getId());
 
 		var map = new Map(layer, rootNode);
 		map.draw();
@@ -42,83 +44,109 @@ $.ajax({
 	}
 });
 
-function Position(x,y) {
+function Position(x, y) {
 	this.x = x;
-	this.y = y;	
+	this.y = y;
 }
-function Dimension(w, h){
+
+function Dimension(w, h) {
 	this.width = w;
 	this.height = h;
 }
 
 function Map(layer, rootNode) {
 	this.rootNode = new Node(rootNode);
-	var position = new Position(stage.getWidth()/2 -100, stage.getHeight()/2 -40);
+	var position = new Position(stage.getWidth() / 2 - 100, stage.getHeight() / 2 - 40);
 	this.rootNode.setNodePosition(position);
 	this.layer = layer;
 
 	this.draw = function() {
 		this.drawMap(this.rootNode);
-		
+
 	};
-	
-	this.drawMap = function( node ){
+
+	this.drawMap = function(node) {
 		this.printNode(node);
 		node.draw(this.layer);
-		var nodeHeight =  this.countHeightOfANode ( node );
+		var nodeHeight = this.countHeightOfANode(node);
 		var nodePositionReference = new Position(node.position.x, node.position.y);
 		nodePositionReference.x = nodePositionReference.x + node.getWidth() + 40;
-		nodePositionReference.y = nodePositionReference.y - nodeHeight/2;
-		
+		nodePositionReference.y = nodePositionReference.y - nodeHeight / 2;
+
 		var xmlChildren = node.xmlChildrenArray();
-		for( var i=0; i<xmlChildren.length; i++ ){
-			var childNode = new Node( xmlChildren[i] );
-			var childNodeHeight = this.countHeightOfANode( childNode );
-			
-			var positionOfChildNode = new Position( nodePositionReference.x, 
-							nodePositionReference.y + childNodeHeight/2 );
-			childNode.setNodePosition( positionOfChildNode );
+		for (var i = 0; i < xmlChildren.length; i++) {
+
+			//ignore everything thats not node
+			if (xmlChildren[i].nodeName.toLowerCase() != "node")
+				continue;
+
+			var childNode = new Node(xmlChildren[i]);
+			var childNodeHeight = this.countHeightOfANode(childNode);
+
+			var positionOfChildNode = new Position(nodePositionReference.x, nodePositionReference.y + childNodeHeight / 2);
+			childNode.setNodePosition(positionOfChildNode);
 			nodePositionReference.y = nodePositionReference.y + childNodeHeight;
-			
-			//this.printNode(childNode);
+
+			this.drawConnections(node, childNode);
+
 			this.drawMap(childNode);
-			//childNode.draw(layer);
 		}
 	}
-	
-	this.printNode = function (node){
-		console.log(node.getText()+"("+node.position.x+","+node.position.y+")"+">"+this.countHeightOfANode(node));
+
+	this.drawConnections = function(nodeFrom, nodeTo) {
+
+		var positionFrom = new Position(nodeFrom.getPosition().x, nodeFrom.getPosition().y);
+		positionFrom.x = positionFrom.x + nodeFrom.getWidth();
+		positionFrom.y = positionFrom.y + nodeFrom.getHeight() / 2;
+
+		var positionTo = new Position(nodeTo.getPosition().x, nodeTo.getPosition().y);
+		positionTo.y = positionTo.y + nodeTo.getHeight() / 2;
+
+		var line = new Kinetic.Line({
+			points : [positionFrom.x, positionFrom.y, positionTo.x, positionTo.y],
+			stroke : 'red'
+		});
+
+		this.layer.add(line);
 	}
-	
+
+	this.printNode = function(node) {
+		console.log(node.getText() + "(" + node.position.x + "," + node.position.y + ")" + ">" + this.countHeightOfANode(node));
+	}
+
 	this.countHeightOfANode = function(node) {
 		var spacing = 5;
 		var ct = 0;
-		if( node.getXmlNode().childElementCount == 0 ){
+		if (node.getXmlNode().childElementCount == 0) {
 			return node.getHeight();
-		}else{
+		} else {
 			var xmlChildren = node.xmlChildrenArray();
-			for( var i=0; i < xmlChildren.length; i++ ){
-				ct = ct + this.countHeightOfANode(new Node( xmlChildren[i] )) +spacing;
+			for (var i = 0; i < xmlChildren.length; i++) {
+				//ignore everything thats not node
+				if (xmlChildren[i].nodeName.toLowerCase() != "node")
+					continue;
+
+				ct = ct + this.countHeightOfANode(new Node(xmlChildren[i])) + spacing;
 			}
 		}
-		return ct;	
+		return ct;
 	};
 }
 
 function Node(xmlNode) {
 	this.xmlNode = xmlNode;
-	this.position = new Position(0,0);
-	
-	this.getXmlNode = function () {
+	this.position = new Position(0, 0);
+
+	this.getXmlNode = function() {
 		return this.xmlNode;
 	};
-	
+
 	this.getId = function() {
 		return $(this.xmlNode).attr("ID");
 	};
 	this.getText = function() {
 		var text = $(this.xmlNode).attr("TEXT");
-		if( typeof text === 'undefined' )
+		if ( typeof text === 'undefined')
 			return "UNDEFINED TEXT";
 		return text;
 	};
@@ -133,55 +161,71 @@ function Node(xmlNode) {
 		//return new Node(sonNode);
 		return sonxmlNode;
 	};
-	
-	this.setNodePosition = function( newPosition ){
-		this.position = newPosition;
-		this.drawableElements[0].setX(this.position.x);
-		this.drawableElements[0].setY(this.position.y);
-		this.drawableElements[1].setX(this.drawableElements[0].getX());
-		this.drawableElements[1].setY(this.drawableElements[0].getY())	;
-	};
-	
-	this.getWidth = function(){
-		return this.drawableElements[1].getWidth();
-	};
-	
-	this.getHeight = function(){
-		return this.drawableElements[1].getHeight();
-	};
-	
-	this.draw = function(layer) {
-		layer.add(this.drawableElements[1]);
-		layer.add(this.drawableElements[0]);
-	};
-	
-//Constructor
-	this.drawableElements =new Array();
-	this.drawableElements[0]= new Kinetic.Text({
-			x : this.position.x,
-			y : this.position.y,
-			text : this.getText(),
-			fontSize : 18,
-			fontFamily : 'Calibri',
-			fill : '#555',
-			//width : this.dimension.width,
-			padding : 10,
-			align : 'center'
-		});
 
-	this.drawableElements[1] = new Kinetic.Rect({
-			x : this.position.x,
-			y : this.position.y,
-			stroke : '#555',
-			strokeWidth : 5,
-			fill : '#ddd',
-			width : this.drawableElements[0].getWidth()+5,
-			height : this.drawableElements[0].getHeight(),
-			shadowColor : 'black',
-			shadowBlur : 5,
-			shadowOffset : [5, 5],
-			shadowOpacity : 0.2,
-			cornerRadius : 5
-		});
+	this.setNodePosition = function(newPosition) {
+		this.position = newPosition;
+		this.drawableElement.setX(this.position.x);
+		this.drawableElement.setY(this.position.y);
+	};
+
+	this.getPosition = function() {
+		return this.position;
+	}
+
+	this.getWidth = function() {
+		return this.rect.getWidth();
+	};
+
+	this.getHeight = function() {
+		return this.rect.getHeight();
+	};
+
+	this.draw = function(layer) {
+		layer.add(this.drawableElement);
+	};
+
+	//Constructor
+	
+	this.drawableElement = new Kinetic.Group({
+		x : this.position.x,
+		y : this.position.y,
+		draggable: true
+	});
+	
+	text = new Kinetic.Text({
+		text : this.getText(),
+		fontSize : 18,
+		fontFamily : 'Calibri',
+		fill : '#555',
+		//width : this.dimension.width,
+		padding : 10,
+		align : 'center'
+	});
+
+	this.rect = new Kinetic.Rect({
+		stroke : '#555',
+		strokeWidth : 5,
+		fill : '#ddd',
+		width : text.getWidth() + 5,
+		height : text.getHeight(),
+		shadowColor : 'black',
+		shadowBlur : 5,
+		shadowOffset : [5, 5],
+		shadowOpacity : 0.2,
+		cornerRadius : 5
+	});
+	
+	this.drawableElement.add(this.rect);
+	this.drawableElement.add(text);
+	
+	this.drawableElement.on('mouseover touchstart', function(){
+		stage.setDraggable(false);
+		console.log("mouseover");
+	});
+	
+	this.drawableElement.on('mouseout touchend', function(){
+		stage.setDraggable(true);
+		console.log("mouseout");
+	});
 };
 
