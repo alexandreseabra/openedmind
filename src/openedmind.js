@@ -1,12 +1,15 @@
+
 var stage = new Kinetic.Stage({
 	container : 'container',
-	width : 1024,
-	height : 400,
+	width : $('#container').width(),
+	height : $('#container').height(),
 	draggable: true
 });
 
 var layer = new Kinetic.Layer();
 
+
+var selectedNode = new Node();
 /*
 var rect = new Kinetic.Rect({
 x : 239,
@@ -66,7 +69,7 @@ function Map(layer, rootNode) {
 	};
 
 	this.drawMap = function(node) {
-		this.printNode(node);
+		//this.printNode(node);
 		node.draw(this.layer);
 		var nodeHeight = this.countHeightOfANode(node);
 		var nodePositionReference = new Position(node.position.x, node.position.y);
@@ -114,6 +117,7 @@ function Map(layer, rootNode) {
 		console.log(node.getText() + "(" + node.position.x + "," + node.position.y + ")" + ">" + this.countHeightOfANode(node));
 	}
 
+	//Used by the logic that displays de map
 	this.countHeightOfANode = function(node) {
 		var spacing = 5;
 		var ct = 0;
@@ -187,9 +191,9 @@ function Node(xmlNode) {
 	//Constructor
 	
 	this.drawableElement = new Kinetic.Group({
+		//draggable: true,
 		x : this.position.x,
-		y : this.position.y,
-		draggable: true
+		y : this.position.y
 	});
 	
 	text = new Kinetic.Text({
@@ -204,7 +208,7 @@ function Node(xmlNode) {
 
 	this.rect = new Kinetic.Rect({
 		stroke : '#555',
-		strokeWidth : 5,
+		strokeWidth : 2,
 		fill : '#ddd',
 		width : text.getWidth() + 5,
 		height : text.getHeight(),
@@ -227,5 +231,23 @@ function Node(xmlNode) {
 		stage.setDraggable(true);
 		console.log("mouseout");
 	});
+	
+	this.drawableElement.clickedNode = this;
+	this.selectNode = function() {
+		selectedNode.rect.setStroke("#555");
+		selectedNode.rect.setStrokeWidth(2)
+		
+		console.log( "Node"+this.clickedNode.getText()+" SELECTED" );
+		this.clickedNode.rect.setStroke("#F00");
+		this.clickedNode.rect.setStrokeWidth(6);
+		
+		selectedNode = this.clickedNode;
+		
+		layer.batchDraw();
+	};
+	
+	this.drawableElement.on('click touchend', this.selectNode );
+	
+	
 };
 
