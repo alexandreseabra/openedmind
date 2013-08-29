@@ -1,13 +1,15 @@
+var imageObjTextEditor = new Image();
+imageObjTextEditor.src = '../src/omimages/text-editor.png';
 
 var stage = new Kinetic.Stage({
 	container : 'container',
 	width : $('#container').width(),
 	height : $('#container').height(),
-	draggable: true
+	draggable : true
 });
 
 var layer = new Kinetic.Layer();
-
+var editLayer = new Kinetic.Layer();
 
 var selectedNode = new Node();
 /*
@@ -26,6 +28,7 @@ layer.add(rect);
 */
 // add the layer to the stage
 stage.add(layer);
+stage.add(editLayer);
 
 $.ajax({
 	url : "../tests/mapaTeste.mm",
@@ -116,7 +119,6 @@ function Map(layer, rootNode) {
 	this.printNode = function(node) {
 		console.log(node.getText() + "(" + node.position.x + "," + node.position.y + ")" + ">" + this.countHeightOfANode(node));
 	}
-
 	//Used by the logic that displays de map
 	this.countHeightOfANode = function(node) {
 		var spacing = 5;
@@ -189,13 +191,13 @@ function Node(xmlNode) {
 	};
 
 	//Constructor
-	
+
 	this.drawableElement = new Kinetic.Group({
 		//draggable: true,
 		x : this.position.x,
 		y : this.position.y
 	});
-	
+
 	text = new Kinetic.Text({
 		text : this.getText(),
 		fontSize : 18,
@@ -218,36 +220,67 @@ function Node(xmlNode) {
 		shadowOpacity : 0.2,
 		cornerRadius : 5
 	});
-	
+
 	this.drawableElement.add(this.rect);
 	this.drawableElement.add(text);
-	
-	this.drawableElement.on('mouseover touchstart', function(){
+
+	this.drawableElement.on('mouseover', function() {
+		editLayer.removeChildren();
+
+		//alert(imageObjTextEditor.naturaltHeight);
+
+		var imageTextEditor = new Kinetic.Image({
+			x : this.getPosition().x + this.clickedNode.getWidth() - 25, // - imageObjTextEditor.naturalWidth,
+			y : this.getPosition().y + this.clickedNode.getHeight() / 4, // - imageObjTextEditor.naturaltHeight)/2,
+			image : imageObjTextEditor
+		});
+		
+		imageTextEditor.on('click', function(){ $("#dialog").dialog("open"); });
+
+		editLayer.add(imageTextEditor);
+		editLayer.batchDraw();
+		console.log("OVER");
+	});
+
+	this.drawableElement.on('mouseover touchstart', function() {
 		stage.setDraggable(false);
 		console.log("mouseover");
 	});
-	
-	this.drawableElement.on('mouseout touchend', function(){
+
+	this.drawableElement.on('mouseout touchend', function() {
 		stage.setDraggable(true);
 		console.log("mouseout");
 	});
-	
+
 	this.drawableElement.clickedNode = this;
 	this.selectNode = function() {
 		selectedNode.rect.setStroke("#555");
 		selectedNode.rect.setStrokeWidth(2)
-		
-		console.log( "Node"+this.clickedNode.getText()+" SELECTED" );
+
+		console.log("Node" + this.clickedNode.getText() + " SELECTED");
 		this.clickedNode.rect.setStroke("#F00");
 		this.clickedNode.rect.setStrokeWidth(6);
-		
+
 		selectedNode = this.clickedNode;
-		
+
 		layer.batchDraw();
 	};
-	
-	this.drawableElement.on('click touchend', this.selectNode );
-	
-	
+
+	this.drawableElement.on('click touchend', this.selectNode);
+
 };
 
+$("#dialog").dialog({
+	autoOpen : false,
+	show : {
+		effect : "blind",
+		duration : 200
+	},
+	hide : {
+		effect : "explode",
+		duration : 200
+	}
+});
+$("#opener").click(function() {
+	$("#dialog").dialog("open");
+}); 

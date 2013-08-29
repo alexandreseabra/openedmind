@@ -11,12 +11,30 @@
       	height: 100%;
       }
       
+      #opt{
+      	float: none;
+      	position: relative;
+      }
+     ​
     </style>
+    <link rel="stylesheet" href="../src/jquery/ui-lightness/jquery-ui-1.10.3.custom.min.css" />
   </head>
   <body>
   	<h1>Opened Mind</h1>
+  	
+  	<div id="quadro">
+  		<button id="opener" value="teste">teste</button>
+  		<div id="canvas"></div>
+  	</div>
+  	
+  	<div id="dialog">
+  		Texto: <input name="text" />
+  			<input type="button" />
+  	</div>
+  	
     <div id="container"> </div>
     <script src="../src/jquery/jquery-2.0.2.js"></script>
+    <script src="../src/jquery/jquery-ui-1.10.3.custom.js"></script>
     <script src="../src/kinetic/kinetic-v4.5.4.js"></script>
     <script src="../src/openedmind.js" defer="defer"></script>
     
