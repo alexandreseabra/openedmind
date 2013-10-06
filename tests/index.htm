@@ -1,5 +1,6 @@
 <html>
   <head>
+  	<meta name="viewport" content="width=device-width, user-scalable=false;">
     <style>
       body {
         margin: 0px;
@@ -7,6 +8,7 @@
       }
       
       #container{
+ 		background-color: D5CEEE;
       	border:solid;
       	height: 100%;
       }
@@ -18,24 +20,61 @@
      ​
     </style>
     <link rel="stylesheet" href="../src/jquery/ui-lightness/jquery-ui-1.10.3.custom.min.css" />
+	<link rel="stylesheet" href="../src/bootstrap/css/bootstrap.css" rel="stylesheet">
+	  
   </head>
   <body>
-  	<h1>Opened Mind</h1>
   	
-  	<div id="quadro">
-  		<button id="opener" value="teste">teste</button>
-  		<div id="canvas"></div>
-  	</div>
-  	
-  	<div id="dialog">
-  		Texto: <input name="text" />
-  			<input type="button" />
-  	</div>
+  	<!-- Static navbar -->
+      <div class="navbar navbar-default">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">OpenedMind</a>
+        </div>
+        <div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+          	<li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown">File <b class="caret"></b></a>
+              <ul class="dropdown-menu">
+                <li><a href="#">Open...</a></li>
+                <li><a href="#">Close</a></li>
+                <li><a href="#">Export...</a></li>
+                <li class="divider"></li>
+                <li class="dropdown-header">Teste</li>
+                <li><a href="#">Print</a></li>
+                <li><a href="#">Properties</a></li>
+              </ul>
+            </li>
+            <li class="active"><a href="#">Save</a></li>
+            <li><a href="#">Link 1 - Test</a></li>
+            <li><a href="#">Link 2 - Test</a></li>
+            
+          </ul>
+          <!-- ul class="nav navbar-nav navbar-right">
+            <li class="active"><a href="./">Default</a></li>
+            <li><a href="../navbar-static-top/">Static top</a></li>
+            <li><a href="../navbar-fixed-top/">Fixed top</a></li>
+          </ul -->
+        </div><!--/.nav-collapse -->
+      </div>
+ 	
+
   	
     <div id="container"> </div>
+    
+    <div id="dialog">
+  		Texto: <input name="text" />
+  		<input type="button" />
+  	</div>
+  	
     <script src="../src/jquery/jquery-2.0.2.js"></script>
     <script src="../src/jquery/jquery-ui-1.10.3.custom.js"></script>
     <script src="../src/kinetic/kinetic-v4.5.4.js"></script>
+    <script src="../src/bootstrap/js/bootstrap.min.js"></script>
     <script src="../src/openedmind.js" defer="defer"></script>
     
   </body>

@@ -1,5 +1,26 @@
+// ------ Main ---------
 var imageObjTextEditor = new Image();
 imageObjTextEditor.src = '../src/omimages/text-editor.png';
+
+var imageZoom = new Image();
+imageZoom.src = '../src/omimages/zoom.png';
+var imageZoomOutSprite = new Kinetic.Image({
+            image: imageZoom,
+            x: 0,
+            y: 0,
+            width: 30, //'destiantion Width' 
+            height: 30, //'destination Height'
+            crop: [0, 0, 30, 30]
+        });
+var imageZoomInSprite = new Kinetic.Image({
+            image: imageZoom,
+            x: 30,
+            y: 0,
+            width: 60, //'destiantion Width' 
+            height: 30, //'destination Height'
+            crop: [30, 0, 60, 30]
+        });
+        
 
 var stage = new Kinetic.Stage({
 	container : 'container',
@@ -8,48 +29,42 @@ var stage = new Kinetic.Stage({
 	draggable : true
 });
 
+var backgroundLayer = new Kinetic.Layer();
 var layer = new Kinetic.Layer();
+var fixedOptionsLayer = new Kinetic.Layer();
 var editLayer = new Kinetic.Layer();
 
 var selectedNode = new Node();
-/*
-var rect = new Kinetic.Rect({
-x : 239,
-y : 75,
-width : 100,
-height : 50,
-fill : 'green',
-stroke : 'black',
-strokeWidth : 4
-});
 
-// add the shape to the layer
-layer.add(rect);
-*/
-// add the layer to the stage
+var backgroundImage = new Image();
+backgroundImage.onload = function() {
+	console.log("backgroung image load");
+	var position = new Position(stage.getWidth() / 2 - 370, stage.getHeight() / 2 - 390);
+	var image = new Kinetic.Image({
+		x : position.x,
+		y : position.y,
+		image : backgroundImage
+	});
+
+	backgroundLayer.add(image);
+	backgroundLayer.draw();
+};
+backgroundImage.src = '../src/omimages/bg_theme.png';
+
+fixedOptionsLayer.add(imageZoomInSprite);
+fixedOptionsLayer.add(imageZoomOutSprite);
+
+stage.add(backgroundLayer);
 stage.add(layer);
+stage.add(fixedOptionsLayer);
 stage.add(editLayer);
 
-$.ajax({
-	url : "../tests/mapaTeste.mm",
-	dataType : "xml",
-	success : function(data) {
-		var map = data.firstChild;
-		var rootNode = map.firstElementChild;
+//FIXME: it is moving with the stage. 
+fixedOptionsLayer.draw();
 
-		//		alert(node.getText());
-		//		alert(node.getId());
+var mindMap = new MindMap("../tests/mapaTeste.mm");
 
-		var map = new Map(layer, rootNode);
-		map.draw();
-		/*$(data).find('node').each(function(){
-		 var id = $(this).attr('ID');
-		 alert(id);
-		 });*/
-		layer.batchDraw();
-	}
-});
-
+//Classes Definitions
 function Position(x, y) {
 	this.x = x;
 	this.y = y;
@@ -60,20 +75,45 @@ function Dimension(w, h) {
 	this.height = h;
 }
 
-function Map(layer, rootNode) {
-	this.rootNode = new Node(rootNode);
-	var position = new Position(stage.getWidth() / 2 - 100, stage.getHeight() / 2 - 40);
-	this.rootNode.setNodePosition(position);
-	this.layer = layer;
+function MindMap(url) {
+	this.url = url;
+	this.xmlRootDocument = null;
+	this.map = null;
+
+	//Everytime we create a new MindMap, lets clear all layers
+	stage.clear();
+
+	$.ajax({
+		url : this.url,
+		dataType : "xml",
+		success : function(data) {
+			this.xmlRootDocument = data;
+			var xmlRootMap = data.firstChild;
+			var xmlRootNode = xmlRootMap.firstElementChild;
+
+			//		alert(node.getText());
+			//		alert(node.getId());
+			this.map = new Map(xmlRootNode);
+			this.map.draw();
+			layer.batchDraw();
+		}
+	});
+	
+	
+}
+
+function Map(xmlRootNode) {
+	this.rootNode = new Node(xmlRootNode);
+	var centeredPositionInStage = new Position(stage.getWidth() / 2 - 100, stage.getHeight() / 2 - 40);
+	this.rootNode.setNodePosition(centeredPositionInStage);
 
 	this.draw = function() {
 		this.drawMap(this.rootNode);
-
 	};
 
 	this.drawMap = function(node) {
 		//this.printNode(node);
-		node.draw(this.layer);
+		node.draw(layer);
 		var nodeHeight = this.countHeightOfANode(node);
 		var nodePositionReference = new Position(node.position.x, node.position.y);
 		nodePositionReference.x = nodePositionReference.x + node.getWidth() + 40;
@@ -113,7 +153,7 @@ function Map(layer, rootNode) {
 			stroke : 'red'
 		});
 
-		this.layer.add(line);
+		layer.add(line);
 	}
 
 	this.printNode = function(node) {
@@ -186,7 +226,7 @@ function Node(xmlNode) {
 		return this.rect.getHeight();
 	};
 
-	this.draw = function(layer) {
+	this.draw = function() {
 		layer.add(this.drawableElement);
 	};
 
@@ -198,7 +238,7 @@ function Node(xmlNode) {
 		y : this.position.y
 	});
 
-	text = new Kinetic.Text({
+	this.text = new Kinetic.Text({
 		text : this.getText(),
 		fontSize : 18,
 		fontFamily : 'Calibri',
@@ -212,8 +252,8 @@ function Node(xmlNode) {
 		stroke : '#555',
 		strokeWidth : 2,
 		fill : '#ddd',
-		width : text.getWidth() + 5,
-		height : text.getHeight(),
+		width : this.text.getWidth() + 5,
+		height : this.text.getHeight(),
 		shadowColor : 'black',
 		shadowBlur : 5,
 		shadowOffset : [5, 5],
@@ -222,7 +262,7 @@ function Node(xmlNode) {
 	});
 
 	this.drawableElement.add(this.rect);
-	this.drawableElement.add(text);
+	this.drawableElement.add(this.text);
 
 	this.drawableElement.on('mouseover', function() {
 		editLayer.removeChildren();
@@ -234,8 +274,10 @@ function Node(xmlNode) {
 			y : this.getPosition().y + this.clickedNode.getHeight() / 4, // - imageObjTextEditor.naturaltHeight)/2,
 			image : imageObjTextEditor
 		});
-		
-		imageTextEditor.on('click', function(){ $("#dialog").dialog("open"); });
+
+		imageTextEditor.on('click', function() {
+			$("#dialog").dialog("open");
+		});
 
 		editLayer.add(imageTextEditor);
 		editLayer.batchDraw();
@@ -281,6 +323,4 @@ $("#dialog").dialog({
 		duration : 200
 	}
 });
-$("#opener").click(function() {
-	$("#dialog").dialog("open");
-}); 
+
