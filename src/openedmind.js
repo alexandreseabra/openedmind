@@ -5,22 +5,21 @@ imageObjTextEditor.src = '../src/omimages/text-editor.png';
 var imageZoom = new Image();
 imageZoom.src = '../src/omimages/zoom.png';
 var imageZoomOutSprite = new Kinetic.Image({
-            image: imageZoom,
-            x: 0,
-            y: 0,
-            width: 30, //'destiantion Width' 
-            height: 30, //'destination Height'
-            crop: [0, 0, 30, 30]
-        });
+	image : imageZoom,
+	x : 0,
+	y : 0,
+	width : 30, //'destiantion Width'
+	height : 30, //'destination Height'
+	crop : [0, 0, 30, 30]
+});
 var imageZoomInSprite = new Kinetic.Image({
-            image: imageZoom,
-            x: 30,
-            y: 0,
-            width: 60, //'destiantion Width' 
-            height: 30, //'destination Height'
-            crop: [30, 0, 60, 30]
-        });
-        
+	image : imageZoom,
+	x : 30,
+	y : 0,
+	width : 60, //'destiantion Width'
+	height : 30, //'destination Height'
+	crop : [30, 0, 60, 30]
+});
 
 var stage = new Kinetic.Stage({
 	container : 'container',
@@ -31,7 +30,9 @@ var stage = new Kinetic.Stage({
 
 var backgroundLayer = new Kinetic.Layer();
 var layer = new Kinetic.Layer();
-var fixedOptionsLayer = new Kinetic.Layer();
+var fixedOptionsLayer = new Kinetic.Layer({
+	draggable : false
+});
 var editLayer = new Kinetic.Layer();
 
 var selectedNode = new Node();
@@ -59,7 +60,7 @@ stage.add(layer);
 stage.add(fixedOptionsLayer);
 stage.add(editLayer);
 
-//FIXME: it is moving with the stage. 
+//FIXME: it is moving with the stage.
 fixedOptionsLayer.draw();
 
 var mindMap = new MindMap("../tests/mapaTeste.mm");
@@ -81,25 +82,47 @@ function MindMap(url) {
 	this.map = null;
 
 	//Everytime we create a new MindMap, lets clear all layers
-	stage.clear();
+	//	stage.clear();
+
+	this.save = function() {
+		$.ajax({
+			type : "POST",
+			url : "someAddress.php",
+			processData: false,
+			data : window.mindMap.xmlRootDocument
+		});
+	}
+
+	this.redrawAll = function() {
+		layer.destroyChildren();
+		editLayer.clear();
+
+		var xmlRootMap = this.xmlRootDocument.firstChild;
+		var xmlRootNode = xmlRootMap.firstElementChild;
+
+		this.map = new Map(xmlRootNode);
+		this.map.draw();
+		layer.batchDraw();
+		
+		this.save();
+	};
 
 	$.ajax({
 		url : this.url,
 		dataType : "xml",
 		success : function(data) {
-			this.xmlRootDocument = data;
+			window.mindMap.xmlRootDocument = data;
 			var xmlRootMap = data.firstChild;
 			var xmlRootNode = xmlRootMap.firstElementChild;
 
 			//		alert(node.getText());
 			//		alert(node.getId());
-			this.map = new Map(xmlRootNode);
-			this.map.draw();
+			window.mindMap.map = new Map(xmlRootNode);
+			window.mindMap.map.draw();
 			layer.batchDraw();
 		}
 	});
-	
-	
+
 }
 
 function Map(xmlRootNode) {
@@ -113,7 +136,7 @@ function Map(xmlRootNode) {
 
 	this.drawMap = function(node) {
 		//this.printNode(node);
-		node.draw(layer);
+		node.draw();
 		var nodeHeight = this.countHeightOfANode(node);
 		var nodePositionReference = new Position(node.position.x, node.position.y);
 		nodePositionReference.x = nodePositionReference.x + node.getWidth() + 40;
@@ -196,6 +219,13 @@ function Node(xmlNode) {
 			return "UNDEFINED TEXT";
 		return text;
 	};
+
+	this.setText = function(text) {
+		$(this.xmlNode).attr("TEXT", text);
+		this.text.setText(text);
+		mindMap.redrawAll();
+	};
+
 	this.getCreatedTime = function() {
 		return $(this.xmlNode).attr("CREATED");
 	};
@@ -264,10 +294,49 @@ function Node(xmlNode) {
 	this.drawableElement.add(this.rect);
 	this.drawableElement.add(this.text);
 
-	this.drawableElement.on('mouseover', function() {
-		editLayer.removeChildren();
+	/*
+	 this.drawableElement.on('mouseover', function() {
+	 editLayer.removeChildren();
 
-		//alert(imageObjTextEditor.naturaltHeight);
+	 //alert(imageObjTextEditor.naturaltHeight);
+
+	 var imageTextEditor = new Kinetic.Image({
+	 x : this.getPosition().x + this.clickedNode.getWidth() - 25, // - imageObjTextEditor.naturalWidth,
+	 y : this.getPosition().y + this.clickedNode.getHeight() / 4, // - imageObjTextEditor.naturaltHeight)/2,
+	 image : imageObjTextEditor
+	 });
+
+	 imageTextEditor.on('click', function() {
+	 //$("#dialog").dialog("open");
+	 var txt = prompt("gimme your text", "drawableElement");
+	 alert(txt);
+	 });
+
+	 editLayer.add(imageTextEditor);
+	 editLayer.batchDraw();
+	 console.log("OVER");
+	 });
+	 */
+	this.drawableElement.on('mouseover touchstart', function() {
+		stage.setDraggable(false);
+		//console.log("mouseover");
+	});
+
+	this.drawableElement.on('mouseout touchend', function() {
+		stage.setDraggable(true);
+		//console.log("mouseout");
+	});
+
+	this.drawableElement.clickedNode = this;
+	this.selectNode = function() {
+		selectedNode.rect.setStroke("#555");
+		//selectedNode.rect.setStrokeWidth(2)
+		console.log("Node" + this.clickedNode.getId() + " SELECTED :" + this.clickedNode.getText());
+		this.clickedNode.rect.setStroke("#F00");
+		//this.clickedNode.rect.setStrokeWidth(6);
+		selectedNode = this.clickedNode;
+
+		editLayer.removeChildren();
 
 		var imageTextEditor = new Kinetic.Image({
 			x : this.getPosition().x + this.clickedNode.getWidth() - 25, // - imageObjTextEditor.naturalWidth,
@@ -275,36 +344,14 @@ function Node(xmlNode) {
 			image : imageObjTextEditor
 		});
 
-		imageTextEditor.on('click', function() {
-			$("#dialog").dialog("open");
+		imageTextEditor.on('click touchend', function() {
+			//$("#dialog").dialog("open");
+			var txt = prompt("gimme your text", selectedNode.getText());
+			selectedNode.setText(txt);
 		});
 
 		editLayer.add(imageTextEditor);
 		editLayer.batchDraw();
-		console.log("OVER");
-	});
-
-	this.drawableElement.on('mouseover touchstart', function() {
-		stage.setDraggable(false);
-		console.log("mouseover");
-	});
-
-	this.drawableElement.on('mouseout touchend', function() {
-		stage.setDraggable(true);
-		console.log("mouseout");
-	});
-
-	this.drawableElement.clickedNode = this;
-	this.selectNode = function() {
-		selectedNode.rect.setStroke("#555");
-		selectedNode.rect.setStrokeWidth(2)
-
-		console.log("Node" + this.clickedNode.getText() + " SELECTED");
-		this.clickedNode.rect.setStroke("#F00");
-		this.clickedNode.rect.setStrokeWidth(6);
-
-		selectedNode = this.clickedNode;
-
 		layer.batchDraw();
 	};
 
